@@ -146,13 +146,23 @@ frame_kalman = np.zeros((400,600,3), np.uint8) # drawing canvas
 mp = np.array((2,1), np.float32) # measurement
 tp = np.zeros((2,1), np.float32) # tracked / prediction
 
+cv2.namedWindow("kalman")
+cv2.moveWindow("kalman", 800,300) 
+kalman = cv2.KalmanFilter(4,2)
+kalman.measurementMatrix = np.array([[1,0,0,0],[0,1,0,0]],np.float32)
+kalman.transitionMatrix = np.array([[1,0,1,0],[0,1,0,1],[0,0,1,0],[0,0,0,1]],np.float32)
+kalman.processNoiseCov = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32) * 0.03
+kalman.errorCovPost =np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32)
+# kalman.measurementNoiseCov = np.array([[1,0],[0,1]],np.float32) * 0.00003
+
 def paint():
-    global frame_kalman,meas,pred
+    global frame_kalman,meas,pred, kalman
     for i in range(len(meas)-1): 
         cv2.line(frame_kalman,meas[i],meas[i+1],(0,100,0))
     for i in range(len(pred)-1): 
         cv2.line(frame_kalman,pred[i],pred[i+1],(0,0,200))
         # chi2inv(0.95, 2) = 5.9915
+        print(kalman.errorCovPost)
         vals, vecs = np.linalg.eigh(5.9915 * kalman.errorCovPost)
         indices = vals.argsort()[::-1]
         vals, vecs = np.sqrt(vals[indices]), vecs[:, indices]
@@ -161,13 +171,6 @@ def paint():
         angle = int(180. * np.arctan2(vecs[1, 0], vecs[0, 0]) / np.pi)
         cv2.ellipse(frame_kalman, pred[i+1], axes, angle, 0, 360, (0, 0, 255), 2)
 
-cv2.namedWindow("kalman")
-cv2.moveWindow("kalman", 800,300) 
-kalman = cv2.KalmanFilter(4,2)
-kalman.measurementMatrix = np.array([[1,0,0,0],[0,1,0,0]],np.float32)
-kalman.transitionMatrix = np.array([[1,0,1,0],[0,1,0,1],[0,0,1,0],[0,0,0,1]],np.float32)
-kalman.processNoiseCov = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32) * 0.03
-#kalman.measurementNoiseCov = np.array([[1,0],[0,1]],np.float32) * 0.00003
 
 #Start the animation loop
 def task():
