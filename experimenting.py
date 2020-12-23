@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import hsv_to_rgb
 from PIL import ImageGrab
+from filterpy.stats import plot_covariance_ellipse
 
 #Window class for making different windows
 class Window:
@@ -147,8 +148,18 @@ tp = np.zeros((2,1), np.float32) # tracked / prediction
 
 def paint():
     global frame_kalman,meas,pred
-    for i in range(len(meas)-1): cv2.line(frame_kalman,meas[i],meas[i+1],(0,100,0))
-    for i in range(len(pred)-1): cv2.line(frame_kalman,pred[i],pred[i+1],(0,0,200))
+    for i in range(len(meas)-1): 
+        cv2.line(frame_kalman,meas[i],meas[i+1],(0,100,0))
+    for i in range(len(pred)-1): 
+        cv2.line(frame_kalman,pred[i],pred[i+1],(0,0,200))
+        # chi2inv(0.95, 2) = 5.9915
+        vals, vecs = np.linalg.eigh(5.9915 * kalman.errorCovPost)
+        indices = vals.argsort()[::-1]
+        vals, vecs = np.sqrt(vals[indices]), vecs[:, indices]
+
+        axes = int(vals[0] + .5), int(vals[1] + .5)
+        angle = int(180. * np.arctan2(vecs[1, 0], vecs[0, 0]) / np.pi)
+        cv2.ellipse(frame_kalman, pred[i+1], axes, angle, 0, 360, (0, 0, 255), 2)
 
 cv2.namedWindow("kalman")
 cv2.moveWindow("kalman", 800,300) 
@@ -192,8 +203,6 @@ def task():
               mp = np.array([[np.float32(cX)],[np.float32(cY)]])
               meas.append((cX,cY))
               kalman.correct(mp)
-
-    
     tp = kalman.predict()
     pred.append((int(tp[0]),int(tp[1])))
     paint()
