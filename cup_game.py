@@ -33,7 +33,7 @@ class Window:
 
     def _create_cup(self, xcoord, ycoord):
         global img
-        img = PhotoImage(file="C:/Users/mxw00/Pictures/red_cup.png")
+        img = PhotoImage(file="red_cup.png")
         self.canvas.create_image(xcoord, ycoord, image=img, tags=("cup", "circledrag"))
 
     def cover(self):
