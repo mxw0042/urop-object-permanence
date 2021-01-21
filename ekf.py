@@ -30,7 +30,7 @@ def ekf(m, x, filterstep, error_cov, count):
     # Measurement Function
     hx = np.array([x[0], x[1]])
 
-    if count%2==0: #every nth step pretend there is a measurement
+    if count%1==0: #every nth step pretend there is a measurement
         JH = np.array([[1.0, 0.0, 0.0, 0.0],
                         [0.0, 1.0, 0.0, 0.0]])
     else: # every other step

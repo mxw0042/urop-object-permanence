@@ -34,29 +34,35 @@ circle2 = DragCircle(main_window, 200, 200, "green")
 circle3 = DragCircle(main_window, 300, 300, "blue")
 cup= DragCup(main_window, 50, 200)
 
-meas=[]
-pred=[(0, 0)]
+meas=[[],[],[]]
+pred=[[(450, 450)], [(300, 300)], [(170, 170)]]
 frame_kalman = np.zeros((400,600,3), np.uint8) # drawing canvas
 
 cv2.namedWindow("kalman")
 cv2.moveWindow("kalman", 800,300) 
 
-error_cov = np.eye(4)*1000.0
-x = np.array([np.float32(0), np.float32(0), 0.5*np.pi, 0.0])
+error_cov = np.array([np.eye(4)*1000.0, np.eye(4)*1000.0, np.eye(4)*1000.0])
+
+x = np.array([[np.float32(0), np.float32(0), 0.5*np.pi, 0.0],
+            [np.float32(0), np.float32(0), 0.5*np.pi, 0.0],
+            [np.float32(0), np.float32(0), 0.5*np.pi, 0.0]])
 
 prev_time=time.time()
 
-# plt.figure()
-# plt.gca().invert_yaxis()
+plt.figure()
+plt.gca().invert_yaxis()
 
 
-def paint():
+def paint(c):
     global frame_kalman,meas,pred, kalman
+    
+    meas_colors=[(150,0,0), (0,100,0), (0,100,100)]
+    pred_colors=[(300,0,0), (0,300,0), (0,300,300)]
 
-    for i in range(len(meas)-1): 
-        cv2.line(frame_kalman,meas[i],meas[i+1],(0,100,0)) #green
-    for i in range(len(pred)-1): 
-        cv2.line(frame_kalman,pred[i],pred[i+1],(0,0,200)) #red
+    for i in range(len(meas[c])-1): 
+        cv2.line(frame_kalman,meas[c][i],meas[c][i+1],meas_colors[c]) #dark 
+    for i in range(len(pred[c])-1): 
+        cv2.line(frame_kalman,pred[c][i],pred[c][i+1],pred_colors[c]) #bright
 
 
 #Start the animation loop
@@ -66,7 +72,7 @@ def task(prev_time, error_cov, count, x):
     x1=x2+main_window.canvas.winfo_width()+170
     y1=y2+main_window.canvas.winfo_height()+150
     
-    N = 60
+    N = 1000
     X = np.linspace(x1, x2, N)
     Y = np.linspace(y1, y2, N)
     X, Y = np.meshgrid(X, Y)
@@ -96,22 +102,22 @@ def task(prev_time, error_cov, count, x):
     for i in range(len(masks)):
         M=cv2.moments(masks[i])
         if M["m00"]!=0:
-          cX = int(M["m10"] / M["m00"])
-          cY = int(M["m01"] / M["m00"])
-          if i==0:
-            meas.append((cX,cY))
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+
+            meas[i].append((cX,cY))
             mp = [cX,cY]
             filterstep=time.time()-prev_time
             prev_time=time.time()
 
-            x, error_cov = ekf(mp, x, filterstep, error_cov, count)
-            pred.append((int(x[0]),int(x[1])))
-            paint()
+            x[i], error_cov[i] = ekf(mp, x[i], filterstep, error_cov[i], count)
+            pred[i].append((int(x[i][0]),int(x[i][1])))
+            paint(i)
 
-            # F = multivariate_normal(np.array([int(x[0]),int(x[1]), 0, 0]), error_cov)
-            # Z = F.pdf(pos)
-            # plt.contourf(X, Y, Z, cmap=cm.viridis)
-            # plt.show(block=False)
+            F = multivariate_normal(np.array(x[i]), error_cov[i])
+            Z = F.pdf(pos)
+            plt.contourf(X, Y, Z, cmap=cm.viridis)
+    plt.show(block=False)
 
     cv2.imshow("kalman",frame_kalman)
     count+=1
