@@ -49,8 +49,8 @@ x = np.array([[np.float32(0), np.float32(0), 0.5*np.pi, 0.0],
 
 prev_time=time.time()
 
-plt.figure()
-plt.gca().invert_yaxis()
+# plt.figure()
+# plt.gca().invert_yaxis()
 
 
 def paint(c):
@@ -114,9 +114,9 @@ def task(prev_time, error_cov, count, x):
             pred[i].append((int(x[i][0]),int(x[i][1])))
             paint(i)
 
-            F = multivariate_normal(np.array(x[i]), error_cov[i])
-            Z = F.pdf(pos)
-            plt.contourf(X, Y, Z, cmap=cm.viridis)
+            # F = multivariate_normal(np.array(x[i]), error_cov[i])
+            # Z = F.pdf(pos)
+            # plt.contourf(X, Y, Z, cmap=cm.viridis)
     plt.show(block=False)
 
     cv2.imshow("kalman",frame_kalman)
