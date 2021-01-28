@@ -104,25 +104,29 @@ def task(prev_time, error_cov, count, x):
     result = cv2.bitwise_or(cv2.bitwise_or(cv2.bitwise_or(mask_blue, mask_green), mask_yellow), mask_red)
 
     masks=[mask_blue, mask_green, mask_yellow, mask_red]
+
     colors=["Blue", "Green", "Yellow", "Red"]
     for i in range(len(masks)):
         M=cv2.moments(masks[i])
-        if M["m00"]!=0:
-            cX = int(M["m10"] / M["m00"])
-            cY = int(M["m01"] / M["m00"])
+        contours,hierarchy = cv2.findContours(masks[i].copy(), 1, 2)
+        if len(contours)!=0:
+            area=cv2.contourArea(contours[0])
+            if M["m00"]!=0 and (area>1500 or area==0):
+                cX = int(M["m10"] / M["m00"])
+                cY = int(M["m01"] / M["m00"])
 
-            meas[i].append((cX,cY))
-            mp = [cX,cY]
-            filterstep=time.time()-prev_time
-            prev_time=time.time()
+                meas[i].append((cX,cY))
+                mp = [cX,cY]
+                filterstep=time.time()-prev_time
+                prev_time=time.time()
 
-            x[i], error_cov[i] = ekf(mp, x[i], filterstep, error_cov[i], count)
-            pred[i].append((int(x[i][0]),int(x[i][1])))
-            paint(i)
+                x[i], error_cov[i] = ekf(mp, x[i], filterstep, error_cov[i], count)
+                pred[i].append((int(x[i][0]),int(x[i][1])))
+                paint(i)
 
-            # F = multivariate_normal(np.array(x[i]), error_cov[i])
-            # Z = F.pdf(pos)
-            # plt.contourf(X, Y, Z, cmap=cm.viridis)
+                # F = multivariate_normal(np.array(x[i]), error_cov[i])
+                # Z = F.pdf(pos)
+                # plt.contourf(X, Y, Z, cmap=cm.viridis)
     plt.show(block=False)
 
     cv2.imshow("kalman",frame_kalman)
