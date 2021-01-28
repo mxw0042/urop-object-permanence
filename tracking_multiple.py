@@ -45,7 +45,7 @@ frame_kalman = np.zeros((400,600,3), np.uint8) # drawing canvas
 cv2.namedWindow("kalman")
 cv2.moveWindow("kalman", 800,300) 
 
-error_cov = np.array([np.eye(4)*1000.0, np.eye(4)*1000.0, np.eye(4)*1000.0, np.eye(4)*1000.0])
+error_cov = np.array([np.eye(4)*0, np.eye(4)*0, np.eye(4)*0, np.eye(4)*0])
 
 x = np.array([[np.float32(0), np.float32(0), 0.5*np.pi, 0.0],
             [np.float32(0), np.float32(0), 0.5*np.pi, 0.0],
@@ -68,6 +68,14 @@ def paint(c):
         cv2.line(frame_kalman,meas[c][i],meas[c][i+1],meas_colors[c]) #dark 
     for i in range(len(pred[c])-1): 
         cv2.line(frame_kalman,pred[c][i],pred[c][i+1],pred_colors[c]) #bright
+        vals, vecs = np.linalg.eigh(5.9915 * error_cov[c])  # chi2inv(0.95, 2) = 5.9915
+        indices = vals.argsort()[::-1]
+        vals, vecs = np.sqrt(vals[indices]), vecs[:, indices]
+
+        axes = int(vals[0] + .5), int(vals[1] + .5)
+        angle = int(180. * np.arctan2(vecs[1, 0], vecs[0, 0]) / np.pi)
+        cv2.ellipse(frame_kalman, pred[c][i+1], axes, angle, 0, 360, meas_colors[c], 2)
+
 
 
 #Start the animation loop
