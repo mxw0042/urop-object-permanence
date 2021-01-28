@@ -23,6 +23,10 @@ upper_blue = np.array([130,255,255])
 lower_yellow = np.array([30, 90, 90]) 
 upper_yellow = np.array([40, 255, 255])
 
+# Threshold of red in HSV space 
+lower_red = np.array([155,25,0])
+upper_red = np.array([179,255,255])
+
 #Make a window
 window = Tk()
 window.title("Drag & Drop")
@@ -34,17 +38,18 @@ circle2 = DragCircle(main_window, 200, 200, "green")
 circle3 = DragCircle(main_window, 300, 300, "blue")
 cup= DragCup(main_window, 50, 200)
 
-meas=[[],[],[]]
-pred=[[(450, 450)], [(300, 300)], [(170, 170)]]
+meas=[[],[],[],[]]
+pred=[[(450, 450)], [(300, 300)], [(170, 170)], [(50, 200)]]
 frame_kalman = np.zeros((400,600,3), np.uint8) # drawing canvas
 
 cv2.namedWindow("kalman")
 cv2.moveWindow("kalman", 800,300) 
 
-error_cov = np.array([np.eye(4)*1000.0, np.eye(4)*1000.0, np.eye(4)*1000.0])
+error_cov = np.array([np.eye(4)*1000.0, np.eye(4)*1000.0, np.eye(4)*1000.0, np.eye(4)*1000.0])
 
 x = np.array([[np.float32(0), np.float32(0), 0.5*np.pi, 0.0],
             [np.float32(0), np.float32(0), 0.5*np.pi, 0.0],
+            [np.float32(0), np.float32(0), 0.5*np.pi, 0.0], 
             [np.float32(0), np.float32(0), 0.5*np.pi, 0.0]])
 
 prev_time=time.time()
@@ -56,8 +61,8 @@ prev_time=time.time()
 def paint(c):
     global frame_kalman,meas,pred, kalman
     
-    meas_colors=[(150,0,0), (0,100,0), (0,100,100)]
-    pred_colors=[(300,0,0), (0,300,0), (0,300,300)]
+    meas_colors=[(150,0,0), (0,100,0), (0,100,100), (0, 0, 100)]
+    pred_colors=[(300,0,0), (0,300,0), (0,300,300), (0, 0, 300)]
 
     for i in range(len(meas[c])-1): 
         cv2.line(frame_kalman,meas[c][i],meas[c][i+1],meas_colors[c]) #dark 
@@ -92,13 +97,14 @@ def task(prev_time, error_cov, count, x):
     mask_blue = cv2.inRange(hsv, lower_blue, upper_blue) 
     mask_green = cv2.inRange(hsv, lower_green, upper_green) 
     mask_yellow = cv2.inRange(hsv, lower_yellow, upper_yellow) 
+    mask_red = cv2.inRange(hsv, lower_red, upper_red) 
         
     # The black region in the mask has the value of 0, 
     # so when multiplied with original image removes all non-blue regions 
-    result = cv2.bitwise_or(cv2.bitwise_or(mask_blue, mask_green), mask_yellow) 
+    result = cv2.bitwise_or(cv2.bitwise_or(cv2.bitwise_or(mask_blue, mask_green), mask_yellow), mask_red)
 
-    masks=[mask_blue, mask_green, mask_yellow]
-    colors=["Blue", "Green", "Yellow"]
+    masks=[mask_blue, mask_green, mask_yellow, mask_red]
+    colors=["Blue", "Green", "Yellow", "Red"]
     for i in range(len(masks)):
         M=cv2.moments(masks[i])
         if M["m00"]!=0:
