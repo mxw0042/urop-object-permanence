@@ -71,13 +71,13 @@ def paint(c):
         cv2.line(frame_kalman,meas[c][i],meas[c][i+1],meas_colors[c]) #dark 
     for i in range(len(pred[c])-1): 
         cv2.line(frame_kalman,pred[c][i],pred[c][i+1],pred_colors[c]) #bright
-        vals, vecs = np.linalg.eigh(5.9915 * error_cov[c])  # chi2inv(0.95, 2) = 5.9915
-        indices = vals.argsort()[::-1]
-        vals, vecs = np.sqrt(vals[indices]), vecs[:, indices]
+    vals, vecs = np.linalg.eigh(5.9915 * error_cov[c])  # chi2inv(0.95, 2) = 5.9915
+    indices = vals.argsort()[::-1]
+    vals, vecs = np.sqrt(vals[indices]), vecs[:, indices]
 
-        axes = int(vals[0] + .5), int(vals[1] + .5)
-        angle = int(180. * np.arctan2(vecs[1, 0], vecs[0, 0]) / np.pi)
-        cv2.ellipse(frame_kalman, pred[c][i+1], axes, angle, 0, 360, meas_colors[c], 2)
+    axes = int(vals[0]), int(vals[1])
+    angle = int(180. * np.arctan2(vecs[1, 0], vecs[0, 0]) / np.pi)
+    cv2.ellipse(frame_kalman, pred[c][len(pred[c])-1], axes, angle, 0, 360, meas_colors[c], 2)
 
 
 
