@@ -97,12 +97,11 @@ def task(prev_time, error_cov, count, x):
     pos = np.empty(X.shape + (4,))
     pos[:, :, 0] = X
     pos[:, :, 1] = Y
-
-    img=ImageGrab.grab((x2,y2,x1,y1)).save("test_kalman.png")
-    frame = cv2.imread("test_kalman.png")
     
-    # It converts the BGR color space of image to HSV color space 
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV) 
+    # It converts the RGB color space of image to HSV color space 
+    img=ImageGrab.grab((x2,y2,x1,y1))
+    frame = np.array(img)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV) 
 
     # preparing the mask to overlay 
     mask_blue = cv2.inRange(hsv, lower_blue, upper_blue) 
@@ -126,7 +125,7 @@ def task(prev_time, error_cov, count, x):
                 cX[i] = int(M["m10"] / M["m00"])
                 cY[i] = int(M["m01"] / M["m00"])
                 meas[i].append((cX[i],cY[i]))
-                
+
         mp = [cX[i],cY[i]]
             
         filterstep=time.time()-prev_time
