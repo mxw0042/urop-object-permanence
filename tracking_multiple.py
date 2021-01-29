@@ -39,7 +39,7 @@ circle3 = DragCircle(main_window, 300, 300, "blue")
 cup= DragCup(main_window, 50, 200)
 
 meas=[[],[],[],[]]
-pred=[[(450, 450)], [(300, 300)], [(170, 170)], [(50, 200)]]
+pred=[[], [], [], []]
 frame_kalman = np.zeros((400,600,3), np.uint8) # drawing canvas
 
 cv2.namedWindow("kalman")
@@ -52,11 +52,11 @@ x = np.array([[np.float32(0), np.float32(0), 0.5*np.pi, 0.0],
             [np.float32(0), np.float32(0), 0.5*np.pi, 0.0], 
             [np.float32(0), np.float32(0), 0.5*np.pi, 0.0]])
 
-cX=[450, 300, 170, 50]
-cY=[450, 300, 170, 200]
+cX=[0, 0, 0, 0]
+cY=[0, 0, 0, 0]
 
-prev_time=time.time()
-
+prev_time=[time.time(), time.time(), time.time(), time.time()]
+filterstep=[0, 0, 0, 0]
 # plt.figure()
 # plt.gca().invert_yaxis()
 
@@ -71,6 +71,7 @@ def paint(c):
         cv2.line(frame_kalman,meas[c][i],meas[c][i+1],meas_colors[c]) #dark 
     for i in range(len(pred[c])-1): 
         cv2.line(frame_kalman,pred[c][i],pred[c][i+1],pred_colors[c]) #bright
+    # print(c,": ", error_cov[c])
     vals, vecs = np.linalg.eigh(5.9915 * error_cov[c])  # chi2inv(0.95, 2) = 5.9915
     indices = vals.argsort()[::-1]
     vals, vecs = np.sqrt(vals[indices]), vecs[:, indices]
@@ -126,19 +127,17 @@ def task(prev_time, error_cov, count, x):
                 cY[i] = int(M["m01"] / M["m00"])
                 meas[i].append((cX[i],cY[i]))
 
-        mp = [cX[i],cY[i]]
-            
-        filterstep=time.time()-prev_time
-        prev_time=time.time()
+        filterstep[i]=time.time()-prev_time[i]
+        prev_time[i]=time.time()
 
-        x[i], error_cov[i] = ekf(mp, x[i], filterstep, error_cov[i], count)
+        x[i], error_cov[i] = ekf([cX[i],cY[i]], x[i], filterstep[i], error_cov[i], count)
         pred[i].append((int(x[i][0]),int(x[i][1])))
         paint(i)
 
-                # F = multivariate_normal(np.array(x[i]), error_cov[i])
-                # Z = F.pdf(pos)
-                # plt.contourf(X, Y, Z, cmap=cm.viridis)
-    plt.show(block=False)
+        # F = multivariate_normal(np.array(x[i]), error_cov[i])
+        # Z = F.pdf(pos)
+        # plt.contourf(X, Y, Z, cmap=cm.viridis)
+        # plt.show(block=False)
 
     cv2.imshow("kalman",frame_kalman)
     count+=1
