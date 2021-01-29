@@ -52,6 +52,9 @@ x = np.array([[np.float32(0), np.float32(0), 0.5*np.pi, 0.0],
             [np.float32(0), np.float32(0), 0.5*np.pi, 0.0], 
             [np.float32(0), np.float32(0), 0.5*np.pi, 0.0]])
 
+cX=[450, 300, 170, 50]
+cY=[450, 300, 170, 200]
+
 prev_time=time.time()
 
 # plt.figure()
@@ -119,18 +122,18 @@ def task(prev_time, error_cov, count, x):
         contours,hierarchy = cv2.findContours(masks[i].copy(), 1, 2)
         if len(contours)!=0:
             area=cv2.contourArea(contours[0])
-            if M["m00"]!=0 and (area>1500 or area==0):
-                cX = int(M["m10"] / M["m00"])
-                cY = int(M["m01"] / M["m00"])
+            if M["m00"]!=0 and (area>1500 or area==0 or (area>100 and i==3)):
+                cX[i] = int(M["m10"] / M["m00"])
+                cY[i] = int(M["m01"] / M["m00"])
+        meas[i].append((cX[i],cY[i]))
+        mp = [cX[i],cY[i]]
+            
+        filterstep=time.time()-prev_time
+        prev_time=time.time()
 
-                meas[i].append((cX,cY))
-                mp = [cX,cY]
-                filterstep=time.time()-prev_time
-                prev_time=time.time()
-
-                x[i], error_cov[i] = ekf(mp, x[i], filterstep, error_cov[i], count)
-                pred[i].append((int(x[i][0]),int(x[i][1])))
-                paint(i)
+        x[i], error_cov[i] = ekf(mp, x[i], filterstep, error_cov[i], count)
+        pred[i].append((int(x[i][0]),int(x[i][1])))
+        paint(i)
 
                 # F = multivariate_normal(np.array(x[i]), error_cov[i])
                 # Z = F.pdf(pos)
