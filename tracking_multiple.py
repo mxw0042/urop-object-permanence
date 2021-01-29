@@ -125,7 +125,8 @@ def task(prev_time, error_cov, count, x):
             if M["m00"]!=0 and (area>1500 or area==0 or (area>100 and i==3)):
                 cX[i] = int(M["m10"] / M["m00"])
                 cY[i] = int(M["m01"] / M["m00"])
-        meas[i].append((cX[i],cY[i]))
+                meas[i].append((cX[i],cY[i]))
+                
         mp = [cX[i],cY[i]]
             
         filterstep=time.time()-prev_time
