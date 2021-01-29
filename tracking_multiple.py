@@ -20,7 +20,7 @@ lower_blue = np.array([110,200,200])
 upper_blue = np.array([130,255,255])
 
 # Threshold of yellow in HSV space 
-lower_yellow = np.array([30, 90, 90]) 
+lower_yellow = np.array([30, 100, 100]) 
 upper_yellow = np.array([40, 255, 255])
 
 # Threshold of red in HSV space 
@@ -86,8 +86,8 @@ def paint(c):
 def task(prev_time, error_cov, count, x):
     x2=window.winfo_rootx()+main_window.canvas.winfo_x()
     y2=window.winfo_rooty()+main_window.canvas.winfo_y()
-    x1=x2+main_window.canvas.winfo_width()+170
-    y1=y2+main_window.canvas.winfo_height()+150
+    x1=x2+main_window.canvas.winfo_width()
+    y1=y2+main_window.canvas.winfo_height()
     
     N = 1000
     X = np.linspace(x1, x2, N)
@@ -117,24 +117,23 @@ def task(prev_time, error_cov, count, x):
     masks=[mask_blue, mask_green, mask_yellow, mask_red]
 
     colors=["Blue", "Green", "Yellow", "Red"]
-    for i in range(len(masks)):
-        M=cv2.moments(masks[i])
-        contours,hierarchy = cv2.findContours(masks[i].copy(), 1, 2)
+    for c in range(len(masks)):
+        M=cv2.moments(masks[c])
+        contours,hierarchy = cv2.findContours(masks[c].copy(), 1, 2)
         if len(contours)!=0:
             area=cv2.contourArea(contours[0])
-            if M["m00"]!=0 and (area>1500 or area==0 or (area>100 and i==3)):
-                cX[i] = int(M["m10"] / M["m00"])
-                cY[i] = int(M["m01"] / M["m00"])
-                meas[i].append((cX[i],cY[i]))
+            if M["m00"]!=0 and (area>1500 or area==0 or (area>100 and c==3)):
+                cX[c] = int(M["m10"] / M["m00"])
+                cY[c] = int(M["m01"] / M["m00"])
+                meas[c].append((cX[c],cY[c]))
+        filterstep[c]=time.time()-prev_time[c]
+        prev_time[c]=time.time()
 
-        filterstep[i]=time.time()-prev_time[i]
-        prev_time[i]=time.time()
+        x[c], error_cov[c] = ekf([cX[c],cY[c]], x[c], filterstep[c], error_cov[c], count)
+        pred[c].append((int(x[c][0]),int(x[c][1])))
+        paint(c)
 
-        x[i], error_cov[i] = ekf([cX[i],cY[i]], x[i], filterstep[i], error_cov[i], count)
-        pred[i].append((int(x[i][0]),int(x[i][1])))
-        paint(i)
-
-        # F = multivariate_normal(np.array(x[i]), error_cov[i])
+        # F = multivariate_normal(np.array(x[c]), error_cov[c])
         # Z = F.pdf(pos)
         # plt.contourf(X, Y, Z, cmap=cm.viridis)
         # plt.show(block=False)
