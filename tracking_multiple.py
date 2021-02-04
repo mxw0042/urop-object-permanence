@@ -57,9 +57,15 @@ cY=[0, 0, 0, 0]
 
 prev_time=[time.time(), time.time(), time.time(), time.time()]
 filterstep=[0, 0, 0, 0]
+covered=[4, 4, 4, 4] #4 is uncovered
 # plt.figure()
 # plt.gca().invert_yaxis()
 
+def bhattacharyya(mean1, cov1, mean2, cov2):
+    cov=(1/2)*(cov1+cov2)
+    t1=(1/8)*np.sqrt((mean1-mean2)@np.linalg.inv(cov)@(mean1-mean2).T)
+    t2=(1/2)*np.log(np.linalg.det(cov)/np.sqrt(np.linalg.det(cov1)*np.linalg.det(cov2)))
+    return t1+t2
 
 def paint(c):
     global frame_kalman,meas,pred, kalman
@@ -70,8 +76,11 @@ def paint(c):
     for i in range(len(meas[c])-1): 
         cv2.line(frame_kalman,meas[c][i],meas[c][i+1],meas_colors[c]) #dark 
     for i in range(len(pred[c])-1): 
-        cv2.line(frame_kalman,pred[c][i],pred[c][i+1],pred_colors[c]) #bright
-    # print(c,": ", error_cov[c])
+        if c==1:
+            cv2.line(frame_kalman,pred[c][i],pred[c][i+1],pred_colors[c], 2) #bright
+        else:
+            cv2.line(frame_kalman,pred[c][i],pred[c][i+1],pred_colors[c]) #bright
+
     vals, vecs = np.linalg.eigh(5.9915 * error_cov[c])  # chi2inv(0.95, 2) = 5.9915
     indices = vals.argsort()[::-1]
     vals, vecs = np.sqrt(vals[indices]), vecs[:, indices]
@@ -116,27 +125,36 @@ def task(prev_time, error_cov, count, x):
 
     masks=[mask_blue, mask_green, mask_yellow, mask_red]
 
-    colors=["Blue", "Green", "Yellow", "Red"]
     for c in range(len(masks)):
         M=cv2.moments(masks[c])
         contours,hierarchy = cv2.findContours(masks[c].copy(), 1, 2)
         if len(contours)!=0:
+            covered[c]=4
             area=cv2.contourArea(contours[0])
             if M["m00"]!=0 and (area>1500 or area==0 or (area>100 and c==3)):
                 cX[c] = int(M["m10"] / M["m00"])
                 cY[c] = int(M["m01"] / M["m00"])
                 meas[c].append((cX[c],cY[c]))
-        filterstep[c]=time.time()-prev_time[c]
-        prev_time[c]=time.time()
+            filterstep[c]=time.time()-prev_time[c]
+            prev_time[c]=time.time()
 
-        x[c], error_cov[c] = ekf([cX[c],cY[c]], x[c], filterstep[c], error_cov[c], count)
-        pred[c].append((int(x[c][0]),int(x[c][1])))
-        paint(c)
+            x[c], error_cov[c] = ekf([cX[c],cY[c]], x[c], filterstep[c], error_cov[c], count)
+            pred[c].append((int(x[c][0]),int(x[c][1])))
+            paint(c)
 
-        # F = multivariate_normal(np.array(x[c]), error_cov[c])
-        # Z = F.pdf(pos)
-        # plt.contourf(X, Y, Z, cmap=cm.viridis)
-        # plt.show(block=False)
+            # F = multivariate_normal(np.array(x[c]), error_cov[c])
+            # Z = F.pdf(pos)
+            # plt.contourf(X, Y, Z, cmap=cm.viridis)
+            # plt.show(block=False)
+        else: 
+            if covered[c]==4:
+                distances=dict()
+                for i in range(len(masks)):
+                    if i!=c: 
+                        distances[i]=bhattacharyya(x[c], error_cov[c], x[i], error_cov[i])
+                covered[c]=min(distances, key=distances.get)
+            pred[c].append((int(x[covered[c]][0]),int(x[covered[c]][1])))
+            paint(c)
 
     cv2.imshow("kalman",frame_kalman)
     count+=1
