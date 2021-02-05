@@ -153,6 +153,7 @@ def task(prev_time, error_cov, count, x):
                     if i!=c: 
                         distances[i]=bhattacharyya(x[c], error_cov[c], x[i], error_cov[i])
                 covered[c]=min(distances, key=distances.get)
+            error_cov[c]*=1.05
             pred[c].append((int(x[covered[c]][0]),int(x[covered[c]][1])))
             paint(c)
 
