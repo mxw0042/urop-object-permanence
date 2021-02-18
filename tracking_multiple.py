@@ -61,6 +61,8 @@ covered=[4, 4, 4, 4] #4 is uncovered
 # plt.figure()
 # plt.gca().invert_yaxis()
 
+outF = open("predictions.txt", "w")
+
 def bhattacharyya(mean1, cov1, mean2, cov2):
     cov=(1/2)*(cov1+cov2)
     t1=(1/8)*np.sqrt((mean1-mean2)@np.linalg.inv(cov)@(mean1-mean2).T)
@@ -77,7 +79,7 @@ def paint(c):
         cv2.line(frame_kalman,meas[c][i],meas[c][i+1],meas_colors[c]) #dark 
     for i in range(len(pred[c])-1): 
         if c==1:
-            cv2.line(frame_kalman,pred[c][i],pred[c][i+1],pred_colors[c], 2) #bright
+            cv2.line(frame_kalman,pred[c][i],pred[c][i+1],pred_colors[c]) #bright
         else:
             cv2.line(frame_kalman,pred[c][i],pred[c][i+1],pred_colors[c]) #bright
 
@@ -140,6 +142,9 @@ def task(prev_time, error_cov, count, x):
 
             x[c], error_cov[c] = ekf([cX[c],cY[c]], x[c], filterstep[c], error_cov[c], count)
             pred[c].append((int(x[c][0]),int(x[c][1])))
+            data="{}: actual- {} \t predicted- {} \t error cov- {}".format(c, (cX[c],cY[c]), (int(x[c][0]),int(x[c][1])), error_cov[c])
+            outF.write(data)
+            outF.write("\n")
             paint(c)
 
             # F = multivariate_normal(np.array(x[c]), error_cov[c])
@@ -155,6 +160,9 @@ def task(prev_time, error_cov, count, x):
                 covered[c]=min(distances, key=distances.get)
             error_cov[c]*=1.05
             pred[c].append((int(x[covered[c]][0]),int(x[covered[c]][1])))
+            data="{}: actual- {} \t predicted- {} \t error cov- {}".format(c, (cX[c],cY[c]), (int(x[c][0]),int(x[c][1])), error_cov[c])
+            outF.write(data)
+            outF.write("\n")
             paint(c)
 
     cv2.imshow("kalman",frame_kalman)
