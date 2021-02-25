@@ -40,6 +40,7 @@ cup= DragCup(main_window, 50, 200)
 
 meas=[[],[],[],[]]
 pred=[[], [], [], []]
+error=[[], [], [], []]
 frame_kalman = np.zeros((400,600,3), np.uint8) # drawing canvas
 
 cv2.namedWindow("kalman")
@@ -142,11 +143,12 @@ def task(prev_time, error_cov, count, x):
 
             x[c], error_cov[c] = ekf([cX[c],cY[c]], x[c], filterstep[c], error_cov[c], count)
             pred[c].append((int(x[c][0]),int(x[c][1])))
-            data="{}: actual- {} \t predicted- {} \t error cov- {}".format(c, (cX[c],cY[c]), (int(x[c][0]),int(x[c][1])), error_cov[c])
+            error[c].append(error_cov[c][0][0]+error_cov[c][1][1]+error_cov[c][2][2]+error_cov[c][3][3])
+            data="{}: actual- {} \t predicted- {} \t error- {}".format(c, (cX[c],cY[c]), (int(x[c][0]),int(x[c][1])), error[c][-1])
             outF.write(data)
             outF.write("\n")
+            
             paint(c)
-
             # F = multivariate_normal(np.array(x[c]), error_cov[c])
             # Z = F.pdf(pos)
             # plt.contourf(X, Y, Z, cmap=cm.viridis)
@@ -160,9 +162,11 @@ def task(prev_time, error_cov, count, x):
                 covered[c]=min(distances, key=distances.get)
             error_cov[c]*=1.05
             pred[c].append((int(x[covered[c]][0]),int(x[covered[c]][1])))
-            data="{}: actual- {} \t predicted- {} \t error cov- {}".format(c, (cX[c],cY[c]), (int(x[c][0]),int(x[c][1])), error_cov[c])
+            error[c].append(error_cov[c][0][0]+error_cov[c][1][1]+error_cov[c][2][2]+error_cov[c][3][3])
+            data="{}: actual- {} \t predicted- {} \t error- {}".format(c, (cX[c],cY[c]), (int(x[c][0]),int(x[c][1])), error[c][-1])
             outF.write(data)
             outF.write("\n")
+            
             paint(c)
 
     cv2.imshow("kalman",frame_kalman)
