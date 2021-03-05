@@ -41,6 +41,8 @@ cup= DragCup(main_window, 50, 200)
 meas=[[],[],[],[]]
 pred=[[], [], [], []]
 error=[[], [], [], []]
+error_kl=[[], [], [], []]
+
 frame_kalman = np.zeros((400,600,3), np.uint8) # drawing canvas
 
 cv2.namedWindow("kalman")
@@ -69,6 +71,17 @@ def bhattacharyya(mean1, cov1, mean2, cov2):
     t1=(1/8)*np.sqrt((mean1-mean2)@np.linalg.inv(cov)@(mean1-mean2).T)
     t2=(1/2)*np.log(np.linalg.det(cov)/np.sqrt(np.linalg.det(cov1)*np.linalg.det(cov2)))
     return t1+t2
+
+def distance_kullback(A, B):
+    """Kullback leibler divergence between two covariance matrices A and B.
+    :param A: First covariance matrix
+    :param B: Second covariance matrix
+    :returns: Kullback leibler divergence between A and B
+    """
+    dim = A.shape[0]
+    logdet = np.log(np.linalg.det(B) / np.linalg.det(A))
+    kl = np.trace(np.dot(np.linalg.inv(B), A)) - dim + logdet
+    return 0.5 * kl
 
 def paint(c):
     global frame_kalman,meas,pred, kalman
@@ -140,11 +153,13 @@ def task(prev_time, error_cov, count, x):
                 meas[c].append((cX[c],cY[c]))
             filterstep[c]=time.time()-prev_time[c]
             prev_time[c]=time.time()
+            prev_cov=error_cov[c].copy()
 
             x[c], error_cov[c] = ekf([cX[c],cY[c]], x[c], filterstep[c], error_cov[c], count)
             pred[c].append((int(x[c][0]),int(x[c][1])))
-            error[c].append(error_cov[c][0][0]+error_cov[c][1][1]+error_cov[c][2][2]+error_cov[c][3][3])
-            data="{}: actual- {} \t predicted- {} \t error- {}".format(c, (cX[c],cY[c]), (int(x[c][0]),int(x[c][1])), error[c][-1])
+            error[c].append(np.trace(error_cov[c]))
+            error_kl[c].append(distance_kullback(prev_cov, error_cov[c]))
+            data="{}: actual- {} \t predicted- {} \t error (trace)- {} \t error (kl)- {}".format(c, (cX[c],cY[c]), (int(x[c][0]),int(x[c][1])), error[c][-1], error_kl[c][-1])
             outF.write(data)
             outF.write("\n")
             
@@ -160,10 +175,12 @@ def task(prev_time, error_cov, count, x):
                     if i!=c: 
                         distances[i]=bhattacharyya(x[c], error_cov[c], x[i], error_cov[i])
                 covered[c]=min(distances, key=distances.get)
+            prev_cov=error_cov[c].copy()
             error_cov[c]*=1.05
             pred[c].append((int(x[covered[c]][0]),int(x[covered[c]][1])))
-            error[c].append(error_cov[c][0][0]+error_cov[c][1][1]+error_cov[c][2][2]+error_cov[c][3][3])
-            data="{}: actual- {} \t predicted- {} \t error- {}".format(c, (cX[c],cY[c]), (int(x[c][0]),int(x[c][1])), error[c][-1])
+            error[c].append(np.trace(error_cov[c]))
+            error_kl[c].append(distance_kullback(prev_cov, error_cov[c]))
+            data="{}: actual- {} \t predicted- {} \t error (trace)- {} \t error (kl)- {}".format(c, (cX[c],cY[c]), (int(x[c][0]),int(x[c][1])), error[c][-1], error_kl[c][-1])
             outF.write(data)
             outF.write("\n")
             
