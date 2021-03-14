@@ -134,10 +134,6 @@ def task(prev_time, error_cov, count, x):
     mask_green = cv2.inRange(hsv, lower_green, upper_green) 
     mask_yellow = cv2.inRange(hsv, lower_yellow, upper_yellow) 
     mask_red = cv2.inRange(hsv, lower_red, upper_red) 
-        
-    # The black region in the mask has the value of 0, 
-    # so when multiplied with original image removes all non-blue regions 
-    result = cv2.bitwise_or(cv2.bitwise_or(cv2.bitwise_or(mask_blue, mask_green), mask_yellow), mask_red)
 
     masks=[mask_blue, mask_green, mask_yellow, mask_red]
 
