@@ -11,7 +11,13 @@ This environment is processed frame by frame with OpenCV. For each frame, each o
 
 The Kalman filter is used to estimate hidden variables using inaccurate or uncertain measurements. Through weighted averages, the Kalman filter estimates the state of a system by averaging the system’s predicted state and the most recent measurements. Weights are determined from the covariance, a representation of the uncertainty in the prediction of the system state. This process repeats recursively at each time step to provide fairly accurate estimations. 
 
+![image](https://user-images.githubusercontent.com/30159419/111080467-fe574f00-84d4-11eb-8972-5bbac61dc632.png)
+
+
 The extended Kalman filter expands on the base Kalman filter to work with nonlinear functions of the state provided that they are still differentiable. Say the functions are f and h. f can find the predicted state from the previous estimate and h computed the predicted measurement from the predicted state. Because f and h are not linear, the Jacobian is computed. At each time step, the Jacobian is updated with current predicted states, and then used in the Kalman filter equations, effectively linearizing the nonlinear function around the current estimate. In our case, we use the extended Kalman filter to estimate the x position, the y position, the heading (direction), and the velocity. Even though we only measure two of the four states (x-y position), by predicting the heading and velocity as well as the x-y position, we can improve on our ability to predict changes in trajectory. This helps us to achieve close accuracy to the true path and low amounts of uncertainty. 
+
+![image](https://user-images.githubusercontent.com/30159419/111080498-20e96800-84d5-11eb-8137-9fd9b5d4328f.png)
+
 
 In the case of an missing or occluded object, we shift away from Kalman filters to make the assumption that by the rules of object permanence, it has either left the screen or is being obstructed in view by another object. Because for the purposes of our simulation, objects cannot leave the field of view, it can only be the latter case. Therefore, when an object’s contour cannot be found, the Bhattacharyya distance between it’s last known location and all of the surrounding objects is calculated. The object with the smallest distance is assumed to be the object performing the occluding, and so the missing object’s predicted location is coupled with the occluding object’s until the missing object appears once more. During this time, because there is no measurement confirming our predictions about the location of the occluded object, the covariance matrix scales exponentially for each time step a measurement is missing. 
 
