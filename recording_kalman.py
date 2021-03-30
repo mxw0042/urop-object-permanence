@@ -31,7 +31,7 @@ upper_red = np.array([130,255,255]) #np.array([179,255,255])
 
 
 meas=[[],[],[],[]]
-pred=[[], [], [], []]
+pred=[[(301, 330)], [(200, 230)], [(101, 131)], [(51, 228)]]
 error=[[], [], [], []]
 error_kl=[[], [], [], []]
 
@@ -43,30 +43,31 @@ cv2.moveWindow("kalman", 800,300)
 kalman1 = cv2.KalmanFilter(4,2)
 kalman1.measurementMatrix = np.array([[1,0,0,0],[0,1,0,0]],np.float32)
 kalman1.transitionMatrix = np.array([[1,0,1,0],[0,1,0,1],[0,0,1,0],[0,0,0,1]],np.float32)
-kalman1.processNoiseCov = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32) * 0.03
+kalman1.processNoiseCov = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32) * 0.001
 kalman1.errorCovPost =np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32)
 
 kalman2 = cv2.KalmanFilter(4,2)
 kalman2.measurementMatrix = np.array([[1,0,0,0],[0,1,0,0]],np.float32)
 kalman2.transitionMatrix = np.array([[1,0,1,0],[0,1,0,1],[0,0,1,0],[0,0,0,1]],np.float32)
-kalman2.processNoiseCov = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32) * 0.03
+kalman2.processNoiseCov = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32) * 0.001
 kalman2.errorCovPost =np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32)
 
 kalman3 = cv2.KalmanFilter(4,2)
 kalman3.measurementMatrix = np.array([[1,0,0,0],[0,1,0,0]],np.float32)
 kalman3.transitionMatrix = np.array([[1,0,1,0],[0,1,0,1],[0,0,1,0],[0,0,0,1]],np.float32)
-kalman3.processNoiseCov = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32) * 0.03
+kalman3.processNoiseCov = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32) * 0.001
 kalman3.errorCovPost =np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32)
 
 kalman4 = cv2.KalmanFilter(4,2)
 kalman4.measurementMatrix = np.array([[1,0,0,0],[0,1,0,0]],np.float32)
 kalman4.transitionMatrix = np.array([[1,0,1,0],[0,1,0,1],[0,0,1,0],[0,0,0,1]],np.float32)
-kalman4.processNoiseCov = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32) * 0.03
+kalman4.processNoiseCov = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32) * 0.001
 kalman4.errorCovPost =np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32)
 
 k=[kalman1, kalman2, kalman3, kalman4]
 # kalman.measurementNoiseCov = np.array([[1,0],[0,1]],np.float32) * 0.00003
 outF = open("predictions.txt", "w")
+count=0
 
 def bhattacharyya(mean1, cov1, mean2, cov2):
     cov=(1/2)*(cov1+cov2)
@@ -95,14 +96,14 @@ def paint(c):
     for i in range(len(pred[c])-1): 
         cv2.line(frame_kalman,pred[c][i],pred[c][i+1],pred_colors[c]) #bright
 
-        # chi2inv(0.95, 2) = 5.9915
-        vals, vecs = np.linalg.eigh(5.9915 * k[c].errorCovPost)
-        indices = vals.argsort()[::-1]
-        vals, vecs = np.sqrt(vals[indices]), vecs[:, indices]
+    # chi2inv(0.95, 2) = 5.9915
+    vals, vecs = np.linalg.eigh(5.9915 * k[c].errorCovPost)
+    indices = vals.argsort()[::-1]
+    vals, vecs = np.sqrt(vals[indices]), vecs[:, indices]
 
-        axes = int(vals[0] + .5), int(vals[1] + .5)
-        angle = int(180. * np.arctan2(vecs[1, 0], vecs[0, 0]) / np.pi)
-        # cv2.ellipse(frame_kalman, pred[c][i+1], axes, angle, 0, 360, meas_colors[c], 2)
+    axes = int(vals[0] + .5), int(vals[1] + .5)
+    angle = int(180. * np.arctan2(vecs[1, 0], vecs[0, 0]) / np.pi)
+    cv2.ellipse(frame_kalman, pred[c][i+1], axes, angle, 0, 360, meas_colors[c], 2)
 
 
 
@@ -135,16 +136,20 @@ while(cap.isOpened()):
                     k[c].correct(mp)
             prev_cov=k[c].errorCovPost.copy()
             tp = k[c].predict()
-            pred[c].append((int(tp[0]),int(tp[1])))
             
-            error[c].append(np.trace(k[c].errorCovPost))
-            error_kl[c].append(distance_kullback(prev_cov, k[c].errorCovPost))
-            data="{}: actual- {} \t predicted- {} \t error (trace)- {} \t error (kl)- {}".format(c, (cX,cY), (int(tp[0]),int(tp[1])), error[c][-1], error_kl[c][-1])
-            outF.write(data)
-            outF.write("\n")
             
-            paint(c)
+            if count>16:
+                pred[c].append((int(tp[0]),int(tp[1])))
+            
+                error[c].append(np.trace(k[c].errorCovPost))
+                error_kl[c].append(distance_kullback(prev_cov, k[c].errorCovPost))
+                data="{}: actual- {} \t predicted- {} \t error (trace)- {} \t error (kl)- {}".format(c, (cX,cY), (int(tp[0]),int(tp[1])), error[c][-1], error_kl[c][-1])
+                outF.write(data)
+                outF.write("\n")
 
+                paint(c)
+                
+    count+=1
     cv2.imshow("kalman",frame_kalman)
     if cv2.waitKey(35) & 0xFF == ord('q'):
         break
