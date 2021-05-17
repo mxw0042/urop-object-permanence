@@ -215,7 +215,7 @@ ax.set_xlabel('X')
 ax.set_ylabel('Y')
 ax.set_zlabel('Z')
 ax.legend()
-plt.title('Ball Trajectory estimated with Kalman Filter')
+plt.title('Trajectory estimated with EKF and Occlusion Condition')
 
 # Axis equal
 ax.set_xlim(-0.5, 0.5)
