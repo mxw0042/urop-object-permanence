@@ -8,6 +8,7 @@ import matplotlib; matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
+import pylab as plt
 
 import statistics
 
@@ -197,29 +198,73 @@ for row in rows:
 
     filterstep[i]+=1
 
-
-
 fig = plt.figure(figsize=(16,9))
-ax = fig.add_subplot(111, projection='3d')
-ax.plot(xt[0],yt[0],zt[0], color='#BAD4FD', label='Kalman Filter Estimate obj-10') #blue
-ax.plot(Xr[0], Yr[0], Zr[0], color='#0061fc', label='Real obj-10')
-ax.plot(xt[1],yt[1],zt[1], color='#B7FFB4', label='Kalman Filter Estimate obj-7') #green
-ax.plot(Xr[1], Yr[1], Zr[1], color='#07fc00', label='Real obj-7')
-ax.plot(xt[2],yt[2],zt[2], color='#FFD6A7', label='Kalman Filter Estimate obj-3') #orange
-ax.plot(Xr[2], Yr[2], Zr[2], color='#ff8800', label='Real obj-3')
-ax.plot(xt[3],yt[3],zt[3], color='#Ffb6b6', label='Kalman Filter Estimate obj-4') #red
-ax.plot(Xr[3], Yr[3], Zr[3], color='#ff0000', label='Real obj-4')
-ax.plot(xt[4],yt[4],zt[4], color='#e59cff', label='Kalman Filter Estimate obj-12') #purple
-ax.plot(Xr[4], Yr[4], Zr[4], color='#b400f5', label='Real obj-12')
-ax.set_xlabel('X')
-ax.set_ylabel('Y')
-ax.set_zlabel('Z')
-ax.legend()
 plt.title('Trajectory estimated with EKF and Occlusion Condition')
+ax = fig.add_subplot(121, projection='3d')
+lines=[ax.plot([], [], [], lw = 2, color='#0061fc'), ax.plot([], [], [], lw = 2, color='#07fc00'), ax.plot([], [], [], lw = 2, color='#ff8800'), ax.plot([], [], [], lw = 2, color='#ff0000'), ax.plot([], [], [], lw = 2, color='#b400f5')]
+ax2 = fig.add_subplot(122, projection='3d')
+dots=[ax2.scatter([], [], [], lw = 2, color='#0061fc', s=1), ax2.scatter([], [], [], lw = 2, color='#07fc00', s=1), ax2.scatter([], [], [], lw = 2, color='#ff8800', s=1), ax2.scatter([], [], [], lw = 2, color='#ff0000', s=1), ax2.scatter([], [], [], lw = 2, color='#b400f5', s=1)]
+
+
+xdata = [[],[],[],[],[]]
+ydata = [[],[],[],[],[]]
+zdata = [[],[],[],[],[]]
+
+xdatadot = [[],[],[],[],[]]
+ydatadot = [[],[],[],[],[]]
+zdatadot = [[],[],[],[],[]]
+
+count=0
 
 # Axis equal
 ax.set_xlim(-0.5, 0.5)
 ax.set_ylim(-0.5, 0.5)
 ax.set_zlim(0.5, 1)
 
+# Axis equal
+ax2.set_xlim(-0.5, 0.5)
+ax2.set_ylim(-0.5, 0.5)
+ax2.set_zlim(0.5, 1)
+
+colors=['#0061fc', '#07fc00', '#ff8800', '#ff0000', '#b400f5']
+
+def update(count):
+    print(count)
+    for i in range(len(lines)):
+        xdata[i].append(xt[i][count])
+        ydata[i].append(yt[i][count])
+        zdata[i].append(zt[i][count])
+
+        xdatadot[i].append(Xr[i][count])
+        ydatadot[i].append(Yr[i][count])
+        zdatadot[i].append(Zr[i][count])
+
+        lines[i][0].set_xdata(xdata[i])
+        lines[i][0].set_ydata(ydata[i])
+        lines[i][0].set_3d_properties(zdata[i])
+
+        dots[i]=ax2.scatter(xdatadot[i], ydatadot[i], zdatadot[i], color=colors[i], s=1)
+    return lines, dots
+    
+ani = FuncAnimation(fig, update, frames=range(0, len(xt[0])), interval=10, repeat=False)
 plt.show()
+
+# ax.plot(xt[0],yt[0],zt[0], color='#BAD4FD', label='Kalman Filter Estimate obj-10') #blue
+# ax.plot(Xr[0], Yr[0], Zr[0], color='#0061fc', label='Real obj-10')
+# ax.plot(xt[1],yt[1],zt[1], color='#B7FFB4', label='Kalman Filter Estimate obj-7') #green
+# ax.plot(Xr[1], Yr[1], Zr[1], color='#07fc00', label='Real obj-7')
+# ax.plot(xt[2],yt[2],zt[2], color='#FFD6A7', label='Kalman Filter Estimate obj-3') #orange
+# ax.plot(Xr[2], Yr[2], Zr[2], color='#ff8800', label='Real obj-3')
+# ax.plot(xt[3],yt[3],zt[3], color='#Ffb6b6', label='Kalman Filter Estimate obj-4') #red
+# ax.plot(Xr[3], Yr[3], Zr[3], color='#ff0000', label='Real obj-4')
+# ax.plot(xt[4],yt[4],zt[4], color='#e59cff', label='Kalman Filter Estimate obj-12') #purple
+# ax.plot(Xr[4], Yr[4], Zr[4], color='#b400f5', label='Real obj-12')
+# ax.set_xlabel('X')
+# ax.set_ylabel('Y')
+# ax.set_zlabel('Z')
+# ax.legend()
+# plt.title('Trajectory estimated with EKF and Occlusion Condition')
+
+
+
+# plt.show()
