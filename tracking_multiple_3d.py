@@ -198,7 +198,7 @@ for row in rows:
 
     filterstep[i]+=1
 
-fig = plt.figure(figsize=(16,9))
+fig = plt.figure(figsize=(16,8))
 plt.title('Trajectory estimated with EKF and Occlusion Condition')
 ax = fig.add_subplot(121, projection='3d')
 lines=[ax.plot([], [], [], lw = 2, color='#0061fc'), ax.plot([], [], [], lw = 2, color='#07fc00'), ax.plot([], [], [], lw = 2, color='#ff8800'), ax.plot([], [], [], lw = 2, color='#ff0000'), ax.plot([], [], [], lw = 2, color='#b400f5')]
@@ -239,14 +239,15 @@ def update(count):
         ydatadot[i].append(Yr[i][count])
         zdatadot[i].append(Zr[i][count])
 
-        lines[i][0].set_xdata(xdata[i])
-        lines[i][0].set_ydata(ydata[i])
-        lines[i][0].set_3d_properties(zdata[i])
+        lines[i][0].set_xdata(np.array(xdata[i]))
+        lines[i][0].set_ydata(np.array(ydata[i]))
+        lines[i][0].set_3d_properties(np.array(zdata[i]))
 
-        dots[i]=ax2.scatter(xdatadot[i], ydatadot[i], zdatadot[i], color=colors[i], s=1)
+        dots[i]._offsets3d = (xdatadot[i], ydatadot[i], zdatadot[i])
+        # dots[i]=ax2.scatter(xdatadot[i], ydatadot[i], zdatadot[i], color=colors[i], s=1)
     return lines, dots
     
-ani = FuncAnimation(fig, update, frames=range(0, len(xt[0])), interval=10, repeat=False)
+ani = FuncAnimation(fig, update, frames=range(0, len(xt[0])), interval=1, repeat=False)
 plt.show()
 
 # ax.plot(xt[0],yt[0],zt[0], color='#BAD4FD', label='Kalman Filter Estimate obj-10') #blue
