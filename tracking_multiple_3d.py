@@ -220,11 +220,13 @@ count=0
 ax.set_xlim(-0.5, 0.5)
 ax.set_ylim(-0.5, 0.5)
 ax.set_zlim(0.5, 1)
+ax.invert_zaxis()
 
 # Axis equal
 ax2.set_xlim(-0.5, 0.5)
 ax2.set_ylim(-0.5, 0.5)
 ax2.set_zlim(0.5, 1)
+ax2.invert_zaxis()
 
 colors=['#0061fc', '#07fc00', '#ff8800', '#ff0000', '#b400f5']
 
