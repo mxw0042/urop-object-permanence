@@ -3,6 +3,7 @@ import time
 import cv2  
 import numpy as np 
 import matplotlib.pyplot as plt
+import math
 from matplotlib.colors import hsv_to_rgb
 from PIL import ImageGrab
 from scipy.stats import multivariate_normal
@@ -10,6 +11,7 @@ from matplotlib import cm
 
 from cup_game import Window, DragCircle, DragCup
 from ekf import ekf
+from statistics import mean
 
 cap=cv2.VideoCapture('sample_game.mp4')
 
@@ -98,7 +100,7 @@ def paint(c):
     cv2.ellipse(frame_kalman, pred[c][len(pred[c])-1], axes, angle, 0, 360, meas_colors[c], 2)
 
 
-
+distance_from_groundtruth=[]
 #Start the animation loop
 while(cap.isOpened()):
     ret, frame = cap.read()
@@ -119,25 +121,40 @@ while(cap.isOpened()):
             M=cv2.moments(masks[c])
             contours,hierarchy = cv2.findContours(masks[c].copy(), 1, 2)
             if len(contours)!=0:
+                covered[c]=4
                 area=cv2.contourArea(contours[0])
                 if M["m00"]!=0 and (area>1500 or area==0 or (area>100 and c==3)):
                     cX[c] = int(M["m10"] / M["m00"])
                     cY[c] = int(M["m01"] / M["m00"])
                     meas[c].append((cX[c],cY[c]))
-            filterstep[c]=time.time()-prev_time[c]
-            prev_time[c]=time.time()
-            prev_cov=error_cov[c].copy()
+                filterstep[c]=time.time()-prev_time[c]
+                prev_time[c]=time.time()
+                prev_cov=error_cov[c].copy()
+                
+                x[c], error_cov[c] = ekf([cX[c],cY[c]], x[c], filterstep[c], error_cov[c], count)
+                pred[c].append((int(x[c][0]),int(x[c][1])))
+                error[c].append(np.trace(error_cov[c]))
+                error_kl[c].append(distance_kullback(prev_cov, error_cov[c]))
+            else: 
+                if covered[c]==4:
+                    distances=dict()
+                    for i in range(len(masks)):
+                        if i!=c and np.any(error_cov[i]): 
+                            distances[i]=bhattacharyya(x[c], error_cov[c], x[i], error_cov[i])
+                    covered[c]=min(distances, key=distances.get)
+                    meas[c].append(meas[covered[c]][-1])
+                    cX[c] = meas[covered[c]][-1][0]
+                    cY[c] = meas[covered[c]][-1][1]
 
-            x[c], error_cov[c] = ekf([cX[c],cY[c]], x[c], filterstep[c], error_cov[c], count)
-            pred[c].append((int(x[c][0]),int(x[c][1])))
-            error[c].append(np.trace(error_cov[c]))
-            error_kl[c].append(distance_kullback(prev_cov, error_cov[c]))
             data="{}: actual- {} \t predicted- {} \t error (trace)- {} \t error (kl)- {}".format(c, (cX[c],cY[c]), (int(x[c][0]),int(x[c][1])), error[c][-1], error_kl[c][-1])
             outF.write(data)
             outF.write("\n")
-            
+            if count>5:
+                distance_from_groundtruth+=[math.hypot(float(x[c][0]-cX[c]), float(x[c][1]-cY[c]))]
             paint(c)
 
+    if count>5:
+        print("eucildean: ", mean(distance_from_groundtruth))
     cv2.imshow("kalman",frame_kalman)
     if cv2.waitKey(25) & 0xFF == ord('q'):
         break

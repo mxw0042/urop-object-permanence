@@ -3,6 +3,7 @@ import time
 import cv2  
 import numpy as np 
 import matplotlib.pyplot as plt
+import math
 from matplotlib.colors import hsv_to_rgb
 from PIL import ImageGrab
 from scipy.stats import multivariate_normal
@@ -10,6 +11,7 @@ from matplotlib import cm
 
 from cup_game import Window, DragCircle, DragCup
 from ekf import ekf
+from statistics import mean
 
 cap=cv2.VideoCapture('sample_game.mp4')
 
@@ -36,6 +38,13 @@ error=[[], [], [], []]
 error_kl=[[], [], [], []]
 
 frame_kalman = np.zeros((400,600,3), np.uint8) # drawing canvas
+covered=[4, 4, 4, 4] #4 is uncovered
+cX=[0, 0, 0, 0]
+cY=[0, 0, 0, 0]
+x = np.array([[np.float32(0), np.float32(0), 0.5*np.pi, 0.0],
+            [np.float32(0), np.float32(0), 0.5*np.pi, 0.0],
+            [np.float32(0), np.float32(0), 0.5*np.pi, 0.0], 
+            [np.float32(0), np.float32(0), 0.5*np.pi, 0.0]])
 
 cv2.namedWindow("kalman")
 cv2.moveWindow("kalman", 800,300) 
@@ -106,7 +115,7 @@ def paint(c):
     cv2.ellipse(frame_kalman, pred[c][i+1], axes, angle, 0, 360, meas_colors[c], 2)
 
 
-
+distance_from_groundtruth=[]
 #Start the animation loop
 while(cap.isOpened()):
     ret, frame = cap.read()
@@ -127,28 +136,42 @@ while(cap.isOpened()):
             M=cv2.moments(masks[c])
             contours,hierarchy = cv2.findContours(masks[c].copy(), 1, 2)
             if len(contours)!=0:
+                covered[c]=4
                 area=cv2.contourArea(contours[0])
                 if M["m00"]!=0 and (area>1500 or area==0 or (area>100 and c==3)):
-                    cX = int(M["m10"] / M["m00"])
-                    cY = int(M["m01"] / M["m00"])
-                    mp = np.array([[np.float32(cX)],[np.float32(cY)]])
-                    meas[c].append((cX,cY))
+                    cX[c] = int(M["m10"] / M["m00"])
+                    cY[c] = int(M["m01"] / M["m00"])
+                    mp = np.array([[np.float32(cX[c])],[np.float32(cY[c])]])
+                    meas[c].append((cX[c],cY[c]))
                     k[c].correct(mp)
-            prev_cov=k[c].errorCovPost.copy()
-            tp = k[c].predict()
+                prev_cov=k[c].errorCovPost.copy()
+                tp = k[c].predict()
+                if count>16:
+                    pred[c].append((int(tp[0]),int(tp[1])))
+                
+                    error[c].append(np.trace(k[c].errorCovPost))
+                    error_kl[c].append(distance_kullback(prev_cov, k[c].errorCovPost))
+            else: 
+                if covered[c]==4:
+                    distances=dict()
+                    for i in range(len(masks)):
+                        if i!=c and np.any(k[i].errorCovPost): 
+                            distances[i]=bhattacharyya(x[c], k[c].errorCovPost, x[i], k[i].errorCovPost)
+                    covered[c]=min(distances, key=distances.get)
+                    meas[c].append(meas[covered[c]][-1])
+                    cX[c] = meas[covered[c]][-1][0]
+                    cY[c] = meas[covered[c]][-1][1]
             
             
             if count>16:
-                pred[c].append((int(tp[0]),int(tp[1])))
-            
-                error[c].append(np.trace(k[c].errorCovPost))
-                error_kl[c].append(distance_kullback(prev_cov, k[c].errorCovPost))
                 data="{}: actual- {} \t predicted- {} \t error (trace)- {} \t error (kl)- {}".format(c, (cX,cY), (int(tp[0]),int(tp[1])), error[c][-1], error_kl[c][-1])
                 outF.write(data)
                 outF.write("\n")
+                distance_from_groundtruth+=[math.hypot(float(tp[0][0])-cX[c], float(tp[1][0])-cY[c])]
 
                 paint(c)
-                
+    if count>16:
+        print("eucildean: ", mean(distance_from_groundtruth))         
     count+=1
     cv2.imshow("kalman",frame_kalman)
     if cv2.waitKey(35) & 0xFF == ord('q'):

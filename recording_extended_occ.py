@@ -104,7 +104,6 @@ def paint(c):
 
 
 distance_from_groundtruth=[]
-
 #Start the animation loop
 while(cap.isOpened()):
     ret, frame = cap.read()
@@ -142,7 +141,8 @@ while(cap.isOpened()):
                 data="{}: actual- {} \t predicted- {} \t error (trace)- {} \t error (kl)- {}".format(c, (cX[c],cY[c]), (int(x[c][0]),int(x[c][1])), error[c][-1], error_kl[c][-1])
                 outF.write(data)
                 outF.write("\n")
-                distance_from_groundtruth+=[math.hypot(int(x[c][0]-cX[c]), int(x[c][1]-cY[c]))]
+                if count>5:
+                    distance_from_groundtruth+=[math.hypot(float(x[c][0]-cX[c]), float(x[c][1]-cY[c]))]
                 paint(c)
 
             else: 
@@ -163,10 +163,11 @@ while(cap.isOpened()):
                 data="{}: actual- {} \t predicted- {} \t error (trace)- {} \t error (kl)- {}".format(c, (cX[c],cY[c]), (int(x[c][0]),int(x[c][1])), error[c][-1], error_kl[c][-1])
                 outF.write(data)
                 outF.write("\n")
-                distance_from_groundtruth+=[math.hypot(int(x[c][0]-cX[c]), int(x[c][1]-cY[c]))]
+                if count>5:
+                    distance_from_groundtruth+=[0]
                 paint(c)
-
-    print("eucildean: ", mean(distance_from_groundtruth))
+    if count>5:
+        print("eucildean: ", mean(distance_from_groundtruth))
     cv2.imshow("kalman",frame_kalman)
     if cv2.waitKey(25) & 0xFF == ord('q'):
         break
