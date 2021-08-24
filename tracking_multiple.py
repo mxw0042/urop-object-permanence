@@ -3,6 +3,7 @@ import time
 import cv2  
 import numpy as np 
 import matplotlib.pyplot as plt
+import math
 from matplotlib.colors import hsv_to_rgb
 from PIL import ImageGrab
 from scipy.stats import multivariate_normal
@@ -10,6 +11,7 @@ from matplotlib import cm
 
 from cup_game import Window, DragCircle, DragCup
 from ekf import ekf
+from statistics import mean
 
 # Threshold of green in HSV space 
 lower_green = np.array([50, 100, 100]) 
@@ -109,6 +111,7 @@ def paint(c):
 
 #Start the animation loop
 def task(prev_time, error_cov, count, x):
+    global distance_from_groundtruth
     x2=window.winfo_rootx()+main_window.canvas.winfo_x()
     y2=window.winfo_rooty()+main_window.canvas.winfo_y()
     x1=x2+main_window.canvas.winfo_width()
@@ -158,7 +161,7 @@ def task(prev_time, error_cov, count, x):
             data="{}: actual- {} \t predicted- {} \t error (trace)- {} \t error (kl)- {}".format(c, (cX[c],cY[c]), (int(x[c][0]),int(x[c][1])), error[c][-1], error_kl[c][-1])
             outF.write(data)
             outF.write("\n")
-            
+            distance_from_groundtruth+=[math.hypot(int(x[c][0]-cX[c]), int(x[c][1]-cY[c]))]
             paint(c)
             # F = multivariate_normal(np.array(x[c]), error_cov[c])
             # Z = F.pdf(pos)
@@ -179,15 +182,16 @@ def task(prev_time, error_cov, count, x):
             data="{}: actual- {} \t predicted- {} \t error (trace)- {} \t error (kl)- {}".format(c, (cX[c],cY[c]), (int(x[c][0]),int(x[c][1])), error[c][-1], error_kl[c][-1])
             outF.write(data)
             outF.write("\n")
-            
+            distance_from_groundtruth+=[math.hypot(int(x[c][0]-cX[c]), int(x[c][1]-cY[c]))]
             paint(c)
 
     cv2.imshow("kalman",frame_kalman)
     count+=1
     window.after(10, task, prev_time, error_cov, count, x)  # reschedule event 
     
+distance_from_groundtruth=[]
 window.after(500, task, prev_time, error_cov, 0, x)
 window.mainloop()
-
+print(mean(distance_from_groundtruth))
 # Closes all the frames 
 cv2.destroyAllWindows() 

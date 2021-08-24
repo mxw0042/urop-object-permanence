@@ -3,6 +3,10 @@ import time
 import cv2  
 import numpy as np 
 import matplotlib.pyplot as plt
+import math
+import pandas as pd
+import scipy as sp
+
 from matplotlib.colors import hsv_to_rgb
 from PIL import ImageGrab
 from scipy.stats import multivariate_normal
@@ -10,6 +14,7 @@ from matplotlib import cm
 
 from cup_game import Window, DragCircle, DragCup
 from ekf import ekf
+from statistics import mean
 
 cap=cv2.VideoCapture('sample_game.mp4')
 
@@ -98,6 +103,7 @@ def paint(c):
     cv2.ellipse(frame_kalman, pred[c][len(pred[c])-1], axes, angle, 0, 360, meas_colors[c], 2)
 
 
+distance_from_groundtruth=[]
 
 #Start the animation loop
 while(cap.isOpened()):
@@ -136,7 +142,7 @@ while(cap.isOpened()):
                 data="{}: actual- {} \t predicted- {} \t error (trace)- {} \t error (kl)- {}".format(c, (cX[c],cY[c]), (int(x[c][0]),int(x[c][1])), error[c][-1], error_kl[c][-1])
                 outF.write(data)
                 outF.write("\n")
-                
+                distance_from_groundtruth+=[math.hypot(int(x[c][0]-cX[c]), int(x[c][1]-cY[c]))]
                 paint(c)
 
             else: 
@@ -157,9 +163,10 @@ while(cap.isOpened()):
                 data="{}: actual- {} \t predicted- {} \t error (trace)- {} \t error (kl)- {}".format(c, (cX[c],cY[c]), (int(x[c][0]),int(x[c][1])), error[c][-1], error_kl[c][-1])
                 outF.write(data)
                 outF.write("\n")
-                
+                distance_from_groundtruth+=[math.hypot(int(x[c][0]-cX[c]), int(x[c][1]-cY[c]))]
                 paint(c)
 
+    print("eucildean: ", mean(distance_from_groundtruth))
     cv2.imshow("kalman",frame_kalman)
     if cv2.waitKey(25) & 0xFF == ord('q'):
         break
@@ -167,5 +174,6 @@ while(cap.isOpened()):
     
 
 cap.release()
+
 # Closes all the frames 
 cv2.destroyAllWindows() 
