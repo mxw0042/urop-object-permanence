@@ -101,6 +101,8 @@ def paint(c):
 
 
 distance_from_groundtruth=[]
+trace_error=[]
+kl_error=[]
 #Start the animation loop
 while(cap.isOpened()):
     ret, frame = cap.read()
@@ -151,10 +153,14 @@ while(cap.isOpened()):
             outF.write("\n")
             if count>5:
                 distance_from_groundtruth+=[math.hypot(float(x[c][0]-cX[c]), float(x[c][1]-cY[c]))]
+                trace_error+=[error[c][-1]]
+                kl_error+=[error_kl[c][-1]]
             paint(c)
 
     if count>5:
         print("eucildean: ", mean(distance_from_groundtruth))
+        print("trace error: ", mean(trace_error))   
+        print("kl error: ", mean(kl_error))
     cv2.imshow("kalman",frame_kalman)
     if cv2.waitKey(25) & 0xFF == ord('q'):
         break
