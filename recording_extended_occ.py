@@ -15,6 +15,7 @@ from matplotlib import cm
 from cup_game import Window, DragCircle, DragCup
 from ekf import ekf
 from statistics import mean
+from scipy.spatial import distance
 
 cap=cv2.VideoCapture('sample_game.mp4')
 
@@ -102,7 +103,7 @@ def paint(c):
     angle = int(180. * np.arctan2(vecs[1, 0], vecs[0, 0]) / np.pi)
     cv2.ellipse(frame_kalman, pred[c][len(pred[c])-1], axes, angle, 0, 360, meas_colors[c], 2)
 
-
+mahalanobis=[]
 distance_from_groundtruth=[]
 trace_error=[]
 kl_error=[]
@@ -144,6 +145,8 @@ while(cap.isOpened()):
                 outF.write(data)
                 outF.write("\n")
                 if count>5:
+                    inv=np.linalg.inv(np.array(error_cov[c])[:2,:2])
+                    mahalanobis+=[distance.mahalanobis([cX[c],cY[c]], [float(x[c][0]), float(x[c][1])], inv)]
                     distance_from_groundtruth+=[math.hypot(float(x[c][0]-cX[c]), float(x[c][1]-cY[c]))]
                     trace_error+=[error[c][-1]]
                     kl_error+=[error_kl[c][-1]]
@@ -168,11 +171,14 @@ while(cap.isOpened()):
                 outF.write(data)
                 outF.write("\n")
                 if count>5:
+                    inv=np.linalg.inv(np.array(error_cov[c])[:2,:2])
+                    mahalanobis+=[distance.mahalanobis([cX[c],cY[c]], [float(x[c][0]), float(x[c][1])], inv)]                    
                     distance_from_groundtruth+=[0]
                     trace_error+=[error[c][-1]]
                     kl_error+=[error_kl[c][-1]]
                 paint(c)
     if count>5:
+        print("mahalanobis: ", mean(mahalanobis))
         print("eucildean: ", mean(distance_from_groundtruth))
         print("trace error: ", mean(trace_error))   
         print("kl error: ", mean(kl_error))
